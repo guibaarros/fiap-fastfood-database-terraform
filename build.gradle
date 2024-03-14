@@ -21,7 +21,7 @@ flyway {
 	def port = System.getenv('DATABASE_PORT_' + ext.environment.toUpperCase())
 	def dbName = System.getenv('DATABASE_NAME_' + ext.environment.toUpperCase())
 	def userName = System.getenv('DATABASE_USERNAME_' + ext.environment.toUpperCase())
-	def userPassword = System.getenv('DATABASE_USERPASSWORD_'+ + ext.environment.toUpperCase())
+	def userPassword = System.getenv('DATABASE_USERPASSWORD_'+ ext.environment.toUpperCase())
 
 	url = "jdbc:postgresql://${host}:${port}/${dbName}"
 	user = userName
