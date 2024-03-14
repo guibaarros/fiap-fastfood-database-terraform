@@ -1,0 +1,30 @@
+buildscript {
+	repositories {
+		mavenCentral()
+	}
+
+	dependencies {
+        classpath("org.postgresql:postgresql:42.7.1")
+        classpath("org.flywaydb:flyway-database-postgresql:10.4.1")
+    }
+}
+
+plugins {
+    id "org.flywaydb.flyway" version "10.10.0"
+}
+
+
+flyway {
+	ext.environment = project.hasProperty('env') ? project.property('env') : 'default'
+
+	def host = System.getenv('DATABASE_HOST_' + ext.environment.toUpperCase())
+	def port = System.getenv('DATABASE_PORT_' + ext.environment.toUpperCase())
+	def dbName = System.getenv('DATABASE_NAME_' + ext.environment.toUpperCase())
+	def userName = System.getenv('DATABASE_USERNAME_' + ext.environment.toUpperCase())
+	def userPassword = System.getenv('DATABASE_USERPASSWORD_'+ + ext.environment.toUpperCase())
+
+	url = "jdbc:postgresql://${host}:${port}/${dbName}"
+	user = userName
+	password = userPassword
+	locations = ['filesystem:db/migration']		
+}
