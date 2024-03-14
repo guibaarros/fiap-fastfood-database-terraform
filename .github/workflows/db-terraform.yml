@@ -37,7 +37,7 @@ jobs:
       run: terraform init
 
     - name: Terraform Plan
-      run: terraform plan -var env=${{ jobs.terraform.environment }} -var-file="env/${{ jobs.terraform.environment }}/variables.tfvars
+      run: terraform plan -var env=${{ env.environment }} -var-file="env/${{ env.environment }}/variables.tfvars
 
     # - name: Terraform Apply
     #   if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
