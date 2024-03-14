@@ -45,5 +45,8 @@ jobs:
       #if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: terraform apply -var env=dev -var postgres_database_username=${{ secrets.DEV_DATABASE_USERNAME }} -var postgres_database_password=${{ secrets.DEV_DATABASE_PASSWORD }} -var-file=environment/dev/variables.tfvars --auto-approve
 
+    - name: Altera permissões do ./gradlew
+      run: chmod +x ./gradlew
+  
     - name: Flyway Migration
       run: ./gradlew flywayMigrate -Penv=dev
