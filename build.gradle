@@ -17,11 +17,11 @@ plugins {
 flyway {
 	ext.environment = project.hasProperty('env') ? project.property('env') : 'default'
 
-	def host = System.getenv('DATABASE_HOST_' + ext.environment.toUpperCase())
-	def port = System.getenv('DATABASE_PORT_' + ext.environment.toUpperCase())
-	def dbName = System.getenv('DATABASE_NAME_' + ext.environment.toUpperCase())
-	def userName = System.getenv('DATABASE_USERNAME_' + ext.environment.toUpperCase())
-	def userPassword = System.getenv('DATABASE_USERPASSWORD_'+ ext.environment.toUpperCase())
+	def host = project.property('DATABASE_HOST_' + ext.environment.toUpperCase())
+	def port = project.property('DATABASE_PORT_' + ext.environment.toUpperCase())
+	def dbName = project.property('DATABASE_NAME_' + ext.environment.toUpperCase())
+	def userName = project.property('DATABASE_USERNAME_' + ext.environment.toUpperCase())
+	def userPassword = project.property('DATABASE_USERPASSWORD_'+ ext.environment.toUpperCase())
 
 	url = "jdbc:postgresql://${host}:${port}/${dbName}"
 	user = userName
