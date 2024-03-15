@@ -2,21 +2,20 @@ name: 'Delivery da Base de Dados'
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  terraform:
-    name: 'Database - Terraform'
+  terraform-dev:
+    name: 'Database - Terraform - Dev'
     runs-on: ubuntu-latest
 
     defaults:
       run:
         shell: bash
 
+    if: github.ref == 'refs/heads/development'
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -42,18 +41,18 @@ jobs:
       run:  terraform plan -var env=dev -var postgres_database_username=${{ secrets.DATABASE_USERNAME_DEV }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_DEV }} -var-file=environment/dev/variables.tfvars
 
     - name: Aplica o Terraform
-      #if: github.ref == 'refs/heads/"main"' && github.event_name == 'push'
       run: terraform apply -var env=dev -var postgres_database_username=${{ secrets.DATABASE_USERNAME_DEV }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_DEV }} -var-file=environment/dev/variables.tfvars --auto-approve
 
-  db-migration:
-    name: 'Database - Migration'
+  db-migration-dev:
+    name: 'Database - Migration - Dev'
     runs-on: ubuntu-latest
-    needs: terraform
+    needs: terraform-dev
 
     defaults:
       run:
         shell: bash
 
+    if: github.ref == 'refs/heads/development'
     steps:
     - name: Checkout
       uses: actions/checkout@v3
@@ -69,3 +68,127 @@ jobs:
     
     - name: Executa o a migração pelo Flyway
       run: ./gradlew flywayMigrate -Penv=dev -PDATABASE_HOST_DEV=${{ secrets.DATABASE_HOST_DEV }} -PDATABASE_PORT_DEV=${{ secrets.DATABASE_PORT_DEV }} -PDATABASE_NAME_DEV=${{ secrets.DATABASE_NAME_DEV }} -PDATABASE_USERNAME_DEV=${{ secrets.DATABASE_USERNAME_DEV }} -PDATABASE_USERPASSWORD_DEV=${{ secrets.DATABASE_PASSWORD_DEV }}
+
+  terraform-qa:
+    name: 'Database - Terraform - QA'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    if: github.ref == 'refs/heads/release'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Instala o Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Configura as credenciais da AWS
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Inicializa o terraform
+      run: terraform init
+
+    - name: Seleciona a Workspace
+      run: terraform workspace select --or-create qa
+
+    - name: Executa o plano do Terraform
+      run:  terraform plan -var env=qa -var postgres_database_username=${{ secrets.DATABASE_USERNAME_QA }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_QA }} -var-file=environment/qa/variables.tfvars
+
+    - name: Aplica o Terraform
+      run: terraform apply -var env=qa -var postgres_database_username=${{ secrets.DATABASE_USERNAME_QA }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_QA }} -var-file=environment/qa/variables.tfvars --auto-approve
+
+  db-migration-qa:
+    name: 'Database - Migration - QA'
+    runs-on: ubuntu-latest
+    needs: terraform-qa
+
+    defaults:
+      run:
+        shell: bash
+
+    if: github.ref == 'refs/heads/release'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Configura o Java 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+
+    - name: Altera permissões do ./gradlew
+      run: chmod +x ./gradlew
+    
+    - name: Executa o a migração pelo Flyway
+      run: ./gradlew flywayMigrate -Penv=qa -PDATABASE_HOST_QA=${{ secrets.DATABASE_HOST_QA }} -PDATABASE_PORT_QA=${{ secrets.DATABASE_PORT_QA }} -PDATABASE_NAME_QA=${{ secrets.DATABASE_NAME_QA }} -PDATABASE_USERNAME_QA=${{ secrets.DATABASE_USERNAME_QA }} -PDATABASE_USERPASSWORD_QA=${{ secrets.DATABASE_PASSWORD_QA }}
+
+  terraform-prod:
+    name: 'Database - Terraform - PROD'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Instala o Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Configura as credenciais da AWS
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Inicializa o terraform
+      run: terraform init
+
+    - name: Seleciona a Workspace
+      run: terraform workspace select --or-create prod
+
+    - name: Executa o plano do Terraform
+      run:  terraform plan -var env=prod -var postgres_database_username=${{ secrets.DATABASE_USERNAME_PROD }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_PROD }} -var-file=environment/prod/variables.tfvars
+
+    - name: Aplica o Terraform
+      run: terraform apply -var env=prod -var postgres_database_username=${{ secrets.DATABASE_USERNAME_PROD }} -var postgres_database_password=${{ secrets.DATABASE_PASSWORD_PROD }} -var-file=environment/prod/variables.tfvars --auto-approve
+
+  db-migration-prod:
+    name: 'Database - Migration - PROD'
+    runs-on: ubuntu-latest
+    needs: terraform-prod
+
+    defaults:
+      run:
+        shell: bash
+
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Configura o Java 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'adopt'
+
+    - name: Altera permissões do ./gradlew
+      run: chmod +x ./gradlew
+    
+    - name: Executa o a migração pelo Flyway
+      run: ./gradlew flywayMigrate -Penv=prod -PDATABASE_HOST_PROD=${{ secrets.DATABASE_HOST_PROD }} -PDATABASE_PORT_PROD=${{ secrets.DATABASE_PORT_PROD }} -PDATABASE_NAME_PROD=${{ secrets.DATABASE_NAME_PROD }} -PDATABASE_USERNAME_PROD=${{ secrets.DATABASE_USERNAME_PROD }} -PDATABASE_USERPASSWORD_PROD=${{ secrets.DATABASE_PASSWORD_PROD }}
