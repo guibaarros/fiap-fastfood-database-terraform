@@ -2,6 +2,10 @@ name: 'Delivery da Base de Dados'
 
 on:
   push:
+    branches:
+      - "main"
+      - "development"
+      - "release"
 
 permissions:
   contents: read
